@@ -152,21 +152,35 @@ app.get('/investments', async (req, res) => {
         res.json({ status: 'error', message: error.message });
     }
 });
+app.get('/investments/:id', async (req, res) => {
+  const { id } = req.params;
 
+  try {
+    const investment = await Investments.findById(id);
+    if (investment) {
+      res.json({ status: 'ok', investment: investment });
+    } else {
+      res.json({ status: 'error', message: 'Investment not found' });
+    }
+  } catch (error) {
+    console.log(error.message);
+    res.json({ status: 'error', message: error.message });
+  }
+});
 
 //api get one invest
-app.get('/investments/:id', async (req, res) => {
-    try {
-        const investment = await Investments.findById(req.params.id);
-        if (!investment) {
-            return res.status(404).json({ status: 'error', message: 'Investment not found' });
-        }
-        res.json({ status: 'ok', investment: investment });
-    } catch (error) {
-        console.log(error.message);
-        res.status(500).json({ status: 'error', message: error.message });
-    }
-});
+// app.get('/investments/:id', async (req, res) => {
+//     try {
+//         const investment = await Investments.findById(req.params.id);
+//         if (!investment) {
+//             return res.status(404).json({ status: 'error', message: 'Investment not found' });
+//         }
+//         res.json({ status: 'ok', investment: investment });
+//     } catch (error) {
+//         console.log(error.message);
+//         res.status(500).json({ status: 'error', message: error.message });
+//     }
+// });
 
 app.post('/signup', (req, res, next) => {
     // Check if email already exists
