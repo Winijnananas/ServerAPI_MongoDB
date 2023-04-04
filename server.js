@@ -9,15 +9,15 @@ const SECRET = process.env.SECRET;
 const router = express.Router();
 const Users = require('./schemas/user')
 const Investments = require('./schemas/Investment')
+const ChartModel= require('./schemas/chart')
 
-//mongodb+srv://winij:oam12345@@appdb.uvwnnq1.mongodb.net/AppDB?authSource=admin&compressors=zlib&retryWrites=true&w=majority&ssl=true
 mongoose.connect('mongodb+srv://winij:oam12345@appdb.uvwnnq1.mongodb.net/AppDB', {
     useNewUrlParser: true
 }).then(() => {
-    console.log('Connected to database');
+    console.log('DATABASE IS CONNECT SUCCESSFUL :)');
   })
   .catch(() => {
-    console.log('Connection failed');
+    console.log('DATABASE CONNECT FAILED :(');
   });
 
 
@@ -142,6 +142,29 @@ app.post('/investments', async (req, res) => {
     }
 });
 
+//api push payment on investment
+app.post('/investments/:id/payment', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const payment = req.body.payment;
+
+    const investment = await Investments.findById(id);
+    if (!investment) {
+      res.status(404).json({ status: 'error', message: 'Investment not found' });
+      return;
+    }
+
+    investment.payment.push(payment);
+    investment.spendings.push({ spendthing: payment.spendthing, costvalue: payment.costvalue });
+    await investment.save();
+
+    res.json({ status: 'ok', message: 'Payment submitted successfully', investment });
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 //api all investments
 app.get('/investments', async (req, res) => {
     try {
@@ -168,19 +191,32 @@ app.get('/investments/:id', async (req, res) => {
   }
 });
 
-//api get one invest
-// app.get('/investments/:id', async (req, res) => {
-//     try {
-//         const investment = await Investments.findById(req.params.id);
-//         if (!investment) {
-//             return res.status(404).json({ status: 'error', message: 'Investment not found' });
-//         }
-//         res.json({ status: 'ok', investment: investment });
-//     } catch (error) {
-//         console.log(error.message);
-//         res.status(500).json({ status: 'error', message: error.message });
-//     }
-// });
+//api delete invest
+app.delete('/investments/:id', async (req, res) => {
+  
+  const { id } = req.params;
+  try {
+    const investmentId = mongoose.Types.ObjectId(id);
+    const investment = await Investments.findById(investmentId);
+    if (investment) {
+      await investment.delete();
+      res.json({ status: 'ok', message: 'Investment deleted successfully' });
+    } else {
+      res.status(404).json({ status: 'error', message: 'Investment not found' });
+    }
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+
+
+
+
+
+
+
 
 app.post('/signup', (req, res, next) => {
     // Check if email already exists
@@ -270,8 +306,52 @@ app.post('/signup', (req, res, next) => {
   
   module.exports = app;
 
+//chart api
+app.post('/chartdata', async (req, res) => {
+  try {
+    const { payment, price } = req.body;
+    
+    // Create a new ChartModel object and save it to the database
+    const chartData = new ChartModel({ payment, price });
+    await chartData.save();
 
+    res.status(201).json({ status: 'ok', message: 'Chart data saved successfully' });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+// app.post('/chartdata', async (req, res) => {
+//   try {
+//       const payload = req.body;
+//       // check if investment already exists
+//       const existsChartData = await ChartData.findOne({ payment: payload.payment, value: payload.value});
+//       if (existsChartData) {
+//           res.json({ status: 'error', message: 'chart already exists' });
+//           return;
+//       }
+//       // create new investment object
+//       const chart = new ChartData(payload);
+//       await chart.save();
+//       res.json({ status: 'ok', message: 'Chart create' });
+//   } catch (error) {
+//       console.log(error.message);
+//       res.json({ status: 'error', message: error.message });
+//   }
+// });
 
+// GET route to retrieve all chart data items
+app.get('/chartdata', async (req, res) => {
+  try {
+    // Find all chart data items in the database
+    const chartData = await ChartModel.find();
+
+    res.json({ status: 'ok', data: chartData });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
 
 
 
